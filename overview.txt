@@ -1,0 +1,475 @@
+MERN Assignment – Batch 2: Library Book API (Node + Express + MongoDB)
+MERN Assignment – Batch 2: Library Book
+API (Node + Express + MongoDB)
+What you will build
+Y ou will build a small Library API: a server that keeps a list of books. There is no website.
+Y ou will talk to your server using a tool called Postman.
+The books are saved in a real database (MongoDB Atlas), so they are still there after you
+stop and restart the server .
+At the end you will have 6 working URLs: see all books, see one book, add a book, change a
+book, delete a book, and filter the books.
+Everything goes in one file, server.js. Y ou do not need to split your code into other files.
+Before you start
+Node.js and VS Code are installed. Check in a terminal: node --version
+Postman is installed (free from postman.com).
+Y ou have a GitHub account.
+Y ou can sign up for a free MongoDB Atlas account (you will do this in Step 2).
+How to work
+1. Do the steps in order . Do not skip ahead.
+2. After every step, run your server and test it in Postman. Compare what you see with
+the Expected result.
+3. Every time you change your code, stop the server with Ctrl + C and start it again
+with node server.js.
+4. If something does not work, read the Hint, then check Common mistakes near the
+end.
+How to send a request in Postman
+1. Open Postman and click New, then HTTP.
+Page 1 of 15
+MERN Assignment – Batch 2: Library Book API (Node + Express + MongoDB)
+2. Choose the method on the left: GET , POST , PUT or DELETE.
+3. T ype the URL, for example http://localhost:5000/api/books.
+4. Only for POST and PUT : click Body, choose raw, choose JSON in the dropdown on the
+right, and type your JSON there.
+5. Click Send.
+6. Look at the status code (for example 200 OK) and at the response shown below it.
+Step 1: Create the project
+What you will learn: how a Node project starts, and which packages you need.
+Do this:
+1. Open a terminal and run these commands one by one:
+mkdir library-api-db
+cd library-api-db
+npm init -y
+npm install express mongoose dotenv
+code .
+2. In VS Code, open package.json and add this line just after the first {:
+"type": "module"
+,
+3. Create a file named .gitignore and type two lines in it:
+node
+modules
+_
+.env
+Expected result: your folder has package.json , package-lock.json , a node
+modules
+_
+folder and .gitignore. In package.json you can see express, mongoose and dotenv
+under dependencies .
+Done: I can see all of the above.
+Step 2: Create your database in MongoDB Atlas
+What you will learn: where your data will live, and how to keep your password safe.
+Do this:
+Page 2 of 15
+MERN Assignment – Batch 2: Library Book API (Node + Express + MongoDB)
+1. Go to mongodb.com/atlas and sign up for a free account.
+2. Create a cluster and choose the M0 Free plan. Pick a region close to India, for example
+Mumbai.
+3. Open Database Access, click Add New Database User. Username: libraryuser.
+P assword: use only letters and numbers (no @, :, / or #). Write the password
+down.
+4. Open Network Access, click Add IP Address, then Allow access from anywhere.
+(This is fine for learning only .)
+5. Open Database, click Connect, then Drivers, and copy the connection string. It looks
+like this:
+mongodb+srv://libraryuser:<password>@cluster0.abcde.mongodb.net/?
+retryWrites=true&w=majority
+6. In VS Code create a file named .env in your project folder . P aste your connection
+string like this. Replace <password> with your real password, and add /library after
+.net. That is the name of your database:
+MONGO
+_
+URI=mongodb+srv://libraryuser:YOURPASSWORD@cluster0.abcde.mongodb.net/l
+ibrary?retryWrites=true&w=majority
+7. Create a second file is safe to share:
+.env.example with the same line but a f ake password. This one
+MONGO
+_
+URI=mongodb+srv://libraryuser:PASSWORD@cluster0.xxxxx.mongodb.net/libra
+ry
+Expected result: your cluster shows in Atlas, .env has your real connection string,
+.env.example has a f ake one, and .env is listed in .gitignore. Never share .env or
+push it to GitHub.
+Done: my cluster , user , IP access and .env are ready .
+Step 3: Connect your server to the database
+What you will learn: how a Node server talks to MongoDB.
+Do this: create server.js and type this code:
+Page 3 of 15
+MERN Assignment – Batch 2: Library Book API (Node + Express + MongoDB)
+import "dotenv/config";
+import express from "express";
+import mongoose from "mongoose";
+const app = express();
+app.use(express.json());
+app.get("/"
+, (req, res) => {
+res.send("Library API running");
+});
+mongoose
+.connect(process.env.MONGO
+URI)
+_
+.then(() => {
+console.log("MongoDB connected");
+app.listen(5000, () => console.log("Server running on
+http://localhost:5000"));
+})
+.catch((err) => console.log("Database error:"
+, err.message));
+The server starts only after the database connects. Run it: node server.js
+Expected result:
+The terminal prints MongoDB connected and then Server running on
+http://localhost:5000.
+Open http://localhost:5000 in your browser . The page shows Library API running.
+If you see Database error: ..., check your password in .env and the Network Access
+setting in Atlas (see Common mistakes).
+Done: I saw both messages in the terminal.
+Step 4: Create the Book model
+What you will learn: a schema is the list of rules for what a book must look like. A model is
+the tool you use to save and find books.
+Do this: in server.js, add this code right under const app = express();. It stays in the
+same file.
+Page 4 of 15
+MERN Assignment – Batch 2: Library Book API (Node + Express + MongoDB)
+const bookSchema = new mongoose.Schema({
+title: { type: String, required: true },
+author: { type: String, required: true },
+year: { type: Number, min: 1000 },
+available: { type: Boolean, default: true }
+});
+const Book = mongoose.model("Book"
+, bookSchema);
+Book Book.create().
+is the tool you will use in every route from now on, for example Book.find() or
+MongoDB gives every book a unique
+_
+id by itself . Y ou do not write it.
+Expected result: the server starts with the same two messages as in Step 3 and shows no
+error . Y ou will see the model working in the next step.
+Done: the server still starts.
+Step 5: Add a new book (POST)
+What you will learn: how to save data in the database.
+Do this: add this route in server.js, above the mongoose.connect code:
+app.post("/api/books"
+, async (req, res) => {
+try {
+const book = await Book.create(req.body);
+res.status(201).json(book);
+} catch (err) {
+res.status(400).json({ message: err.message });
+}
+});
+await means "wait until the database has finished"
+. try / catch catches errors, for
+example a missing title.
+In Postman choose POST, URL JSON, and type:
+http://localhost:5000/api/books, then Body , raw ,
+{ "title": "Harry Potter"
+,
+"author": "J.K. Rowling"
+,
+"year": 1997 }
+Send it 5 times with 5 different books (change the title, author and year).
+Page 5 of 15
+MERN Assignment – Batch 2: Library Book API (Node + Express + MongoDB)
+Expected result:
+Postman request POST with the body above Status Y ou see
+201 400 the saved book, with an
+available: true
+id and
+_
+a message that says the title is required
+POST with body { "author":
+"Someone" }
+Now open Atlas, click Browse Collections, open you added.
+Done: I can see my 5 books in Atlas.
+library, then books. Y ou see the books
+Step 6: Show all books
+What you will learn: how to read data from the database.
+Do this: add this route and finish the T ODO.
+app.get("/api/books"
+, async (req, res) => {
+// TODO: get all books with Book.find() and send them with res.json()
+});
+Hint: const books = await Book.find();
+Expected result: GET http://localhost:5000/api/books gives status 200 and a list of
+your 5 books. Now stop the server , start it again and send the request again. The books
+are still there. In the earlier array version they would be gone. This is why we use a
+database.
+Done: the books are still there after a restart.
+Step 7: Get one book
+What you will learn: how to find one book by its
+Do this: add this route and finish the T ODO.
+id.
+_
+Page 6 of 15
+MERN Assignment – Batch 2: Library Book API (Node + Express + MongoDB)
+app.get("/api/books/:id"
+try {
+, async (req, res) => {
+const book = await Book.findById(req.params.id);
+// TODO: if book is null, send status 404 and { message: "Book not found"
+}
+res.json(book);
+} catch (err) {
+res.status(400).json({ message: "Invalid id" });
+}
+});
+A MongoDB id has 24 characters. If you send something like error and the catch sends 400.
+Copy an
+_
+id from the Step 6 response and paste it in the URL.
+Expected result:
+abc, Mongoose throws an
+Postman request GET /api/books/ (a real
+GET
+/api/books/000000000000000000000000
+GET /api/books/abc Status Y ou see
+_
+id of yours) 200 that book
+404 { "message": "Book not
+found" }
+400 { "message": "Invalid id" }
+Done: all three requests match the table.
+Step 8: Change a book (PUT)
+What you will learn: how to update data in the database.
+Do this: add this route and finish the T ODO.
+Page 7 of 15
+MERN Assignment – Batch 2: Library Book API (Node + Express + MongoDB)
+app.put("/api/books/:id"
+try {
+new: true,
+runValidators: true
+, async (req, res) => {
+const book = await Book.findByIdAndUpdate(req.params.id, req.body, {
+});
+// TODO: if book is null, send status 404 and { message: "Book not found"
+}
+res.json(book);
+} catch (err) {
+res.status(400).json({ message: err.message });
+}
+});
+new: true sends back the book after the change. runValidators: true applies your
+schema rules (like min: 1000) to updates too.
+Expected result:
+Postman request Status Y ou see
+PUT /api/books/ (a real
+"available": false }
+id) with {
+_
+200 the book with available:
+false
+PUT /api/books/ (a real
+_
+id) with { "year": 5
+400 }
+a message that year is less than
+the minimum
+PUT /api/books/000000000000000000000000 404 { "message": "Book not
+found" }
+Refresh Atlas. The first book now shows available: false.
+Done: all three requests match the table.
+Step 9: Delete a book
+What you will learn: how to remove data from the database.
+Do this: add this route and finish the T ODO.
+Page 8 of 15
+MERN Assignment – Batch 2: Library Book API (Node + Express + MongoDB)
+app.delete("/api/books/:id"
+try {
+, async (req, res) => {
+const book = await Book.findByIdAndDelete(req.params.id);
+// TODO: if book is null, send status 404 and { message: "Book not found"
+}
+res.status(204).end();
+} catch (err) {
+res.status(400).json({ message: "Invalid id" });
+}
+});
+Status 204 means "done, nothing to send back"
+.
+Expected result:
+Postman request Status Y ou see
+DELETE /api/books/ (a real
+_
+id) 204 empty response
+GET /api/books 200 the list no longer has that book
+DELETE the same
+_
+id again 404 { "message": "Book not found" }
+Refresh Atlas. The book is gone.
+Done: all three requests match the table, and Atlas agrees.
+Step 10: Filter the books
+What you will learn: how to read values after the search the database.
+Do this: replace your GET /api/books ? in a URL (the query) and use them to
+route with this one and finish the T ODO.
+Page 9 of 15
+MERN Assignment – Batch 2: Library Book API (Node + Express + MongoDB)
+app.get("/api/books"
+const filter = {};
+, async (req, res) => {
+if (req.query.available) {
+filter.available = req.query.available === "true";
+}
+// TODO: if req.query.author exists, set filter.author to
+// { $regex: req.query.author, $options: "i" } ("i" means ignore capital
+letters)
+const books = await Book.find(filter).sort(req.query.sort === "year" ? {
+year: 1 } : {});
+res.json(books);
+});
+Expected result:
+Postman request Status Y ou see
+GET /api/books 200 all books
+GET /api/books?available=true 200 only books with available: true
+GET /api/books?author=rowling 200 only books by Rowling
+GET /api/books?sort=year 200 all books, oldest year first
+Done: all four requests match the table.
+Step 11: Add a logger (middleware)
+What you will learn: middleware is a function that runs for every request, before your
+routes.
+Do this: add this right after app.use(express.json()); so it runs before all routes.
+app.use((req, res, next) => {
+console.log(req.method, req.url);
+next();
+});
+Page 10 of 15
+MERN Assignment – Batch 2: Library Book API (Node + Express + MongoDB)
+Expected result: every time you send a request from Postman, the terminal prints one
+line, for example:
+GET /api/books
+POST /api/books
+GET /api/books?available=true
+T ry it: delete the next(); line, restart, and send any request. Postman keeps loading
+forever , because the request never reaches your routes. Put next(); back.
+Done: I see a line in the terminal for every request.
+Step 12: Handle wrong URLs and errors
+What you will learn: instead of writing the error answer in every route, send errors to one
+shared place. Everything stays in server.js.
+Do this:
+1. Add this code after your last route and before the matters: these two must come last.
+mongoose.connect code. Order
+// a URL that does not exist
+app.use((req, res) => {
+res.status(404).json({ message: "Route not found" });
+});
+// any error
+app.use((err, req, res, next) => {
+const status = err.name === "ValidationError" || err.name === "CastError" ?
+400 : 500;
+res.status(status).json({ message: err.message });
+});
+2. In each of your routes (POST , GET all, GET one, PUT , DELETE), add next as a third
+parameter , and in every catch (err) block replace the res.status(400)... line
+with next(err);. For example, the POST route becomes:
+Page 11 of 15
+MERN Assignment – Batch 2: Library Book API (Node + Express + MongoDB)
+app.post("/api/books"
+, async (req, res, next) => {
+try {
+const book = await Book.create(req.body);
+res.status(201).json(book);
+} catch (err) {
+next(err);
+}
+});
+Expected result:
+Postman request Status Y ou see
+GET /api/hello 404 { "message": "Route not found" }
+GET /api/books/abc 400 a message from Mongoose saying the id is not
+valid
+400 a message that says the title is required
+POST /api/books without a
+title
+Done: all three requests match the table.
+Final check: what your finished project must show
+Send these requests in this order . Every row must match. For rows that need an id, copy a
+real
+id from the list.
+_
+# Postman request Status Y ou see
+1 GET / (in the browser) 200 Library API running
+2 POST /api/books with title and author 201 the saved book with an
+id
+_
+3 POST /api/books without a title 400 a message that the title is
+required
+4 GET /api/books 200 the list of saved books
+5 GET /api/books/ (a real
+_
+id) 200 that book
+Page 12 of 15
+MERN Assignment – Batch 2: Library Book API (Node + Express + MongoDB)
+# Postman request Status Y ou see
+6 GET
+/api/books/000000000000000000000000
+404 { "message": "Book not
+found" }
+7 PUT /api/books/ (a real
+"available": false }
+id) with {
+_
+200 the book with available
+f alse
+8 GET /api/books?available=true 200 only available books
+9 DELETE /api/books/ (a real
+_
+id) 204 empty response, and the
+book is gone in Atlas
+10 GET /api/hello 404 { "message": "Route
+not found" }
+One more check: stop the server , start it again, and send row 4. Y our books must still be
+there.
+Common mistakes
+Database error: bad auth. The username or password in .env is wrong.
+Database error with a timeout. Atlas does not allow your IP address. Open Network
+Access and allow access from anywhere.
+The password has @, # or / in it. Change the database user's password to letters
+and numbers only .
+MONGO
+_
+URI is undefined. The file name is not exactly .env, it is not in the project
+folder , or import "dotenv/config"; is missing at the top of server.js.
+The response is {} or empty . Y ou forgot await before the database call.
+Cannot find module. An import path is missing .js at the end, or "type":
+"module" is missing in package.json .
+EADDRINUSE (port already in use). An old server is still running. Find that terminal and
+press Ctrl + C.
+I pushed .env to GitHub. T ell your trainer , change the database password in Atlas,
+and remove the file from the repo.
+Page 13 of 15
+MERN Assignment – Batch 2: Library Book API (Node + Express + MongoDB)
+Step 13: Put it on GitHub and submit
+Do this: create an empty repository on GitHub named project folder (use Git-Guide-for-Students.pdf if you are stuck):
+library-api-db, then run in your
+git init
+git add .
+git commit -m "Library API with MongoDB"
+git branch -M main
+git remote add origin YOUR-REPO-URL
+git push -u origin main
+Create a README.md with: your name, how to run the project ( npm install, copy
+.env.example to .env and put your own connection string, then node server.js), and
+a table of the 6 routes (method, path, what it does).
+Expected result: your GitHub page shows server.js, package.json , .env.example
+and README.md. It does not show .env or node
+modules .
+_
+Submit:
+The link of your GitHub repo.
+Screenshots of Postman for rows 2 to 9 of the final check table (one each), and one
+screenshot of your books collection in Atlas, all saved in a folder screenshots.
+Marking (out of 100)
+P art Marks
+Steps 1 to 3: project, Atlas, .env and connection 15
+Step 4: Book model 10
+Steps 5 and 6: add a book and list all books 15
+Step 7: get one book, with 404 and 400 10
+Step 8: update a book 10
+Step 9: delete a book 5
+Step 10: filters and sort 10
+Step 11: logger 5
+Page 14 of 15
+MERN Assignment – Batch 2: Library Book API (Node + Express + MongoDB)
+P art Marks
+Step 12: 404 and error handling 10
+Step 13: GitHub, README and screenshots 10
+Page 15 of 15
