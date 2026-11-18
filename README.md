@@ -86,22 +86,6 @@ In Atlas, make sure:
 | `.gitignore` | Excludes `node_modules` and `.env` |
 | `README.md` | This file |
 
-## Submission
-
-Commit and push these files to GitHub (repo name: `library-api-db`):
-
-```bash
-git add server.js package.json package-lock.json .env.example README.md .gitignore screenshots/
-git commit -m "Library API with MongoDB"
-git push
-```
-
-Required screenshots in `screenshots/`:
-- Postman request/response for final-check rows 2–9 (one screenshot each).
-- MongoDB Atlas screenshot of `library` → `books` collection showing your documents.
-
-Do **not** commit `.env` or `node_modules`.
-
 ## Notes
 
 - Keep `.env` private (it is in `.gitignore`).
